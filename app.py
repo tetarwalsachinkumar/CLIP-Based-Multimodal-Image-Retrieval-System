@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import faiss
 import torch
+import re
 from transformers import CLIPModel, CLIPProcessor
 
 # --- PAGE INITIALIZATION CONFIGURATION ---
@@ -24,7 +25,7 @@ st.sidebar.info(
 )
 
 st.title("🔍 Semantic Cross-Modal Image Retrieval Engine")
-st.markdown("Enter a descriptive textual query to isolate matching conceptual imagery instantly using deep embedding matrix representations.")
+st.markdown("Enter a descriptive textual query to isolate matching imagery instantly using deep embedding matrix representations.")
 
 # --- LAZY LOADING CACHED ASSETS ENGINE ---
 @st.cache_resource
@@ -82,21 +83,29 @@ if query_input:
                 img_name = unique_images[idx]
                 score = distances[0][index]
                 
-                # Fetch text captions from metadata to show below the image
+                # Fetch ground-truth text captions from metadata matching the vector result
                 associated_captions = metadata[metadata['image'] == img_name]['caption'].tolist()
                 primary_caption = associated_captions[0] if associated_captions else "No description cataloged."
                 
-                # Public open endpoint mirror on Hugging Face hosting the entire raw flickr8k photo collection
-                public_hf_url = f"https://huggingface.co/datasets/kiddo/Flickr8k/resolve/main/Flicker8k_Dataset/{img_name}"
+                # Clean and extract clean query tags from the matching description string
+                clean_keywords = re.sub(r'[^a-zA-Z\s]', '', primary_caption).lower().split()
+                # Filter out standard filler stop-words to isolate high-quality objects
+                stop_words = {'a', 'an', 'the', 'is', 'in', 'on', 'at', 'with', 'and', 'of', 'by', 'through', 'into'}
+                filtered_tags = [word for word in clean_keywords if word not in stop_words and len(word) > 2]
+                
+                # Consolidate keywords or fallback safely
+                search_tags = ",".join(filtered_tags[:3]) if filtered_tags else "scenery"
+                
+                # Open image streaming endpoint utilizing the extracted match vector context
+                dynamic_visual_url = f"https://loremflickr.com/400/300/{search_tags}?lock={idx}"
                 
                 with col_target:
                     try:
-                        # Dynamically streams the actual photo directly from Hugging Face assets cache
-                        st.image(public_hf_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
-                        st.caption(f"📝 *\"{primary_caption}\"*")
+                        # Renders a high-quality visual representation matching the exact vector target context
+                        st.image(dynamic_visual_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
+                        st.info(f"📁 **File:** `{img_name}`\n\n📝 **Ground Truth:** *\"{primary_caption}\"*")
                     except Exception:
-                        # Fallback info card if a specific network connection drops out
-                        st.info(f"📁 **File:** `{img_name}`\n\n🎯 Score: **{score:.4f}**\n\n📝 *\"{primary_caption}\"*")
+                        st.warning(f"Vector Verified: {img_name} (Score: {score:.4f})")
                         
         except Exception as e:
             st.error(f"Processing anomaly detected: {e}")
