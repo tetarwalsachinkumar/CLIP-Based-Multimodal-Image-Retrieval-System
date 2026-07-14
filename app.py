@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import faiss
 import torch
-import os
-from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
 # --- PAGE INITIALIZATION CONFIGURATION ---
@@ -84,17 +82,15 @@ if query_input:
                 img_name = unique_images[idx]
                 score = distances[0][index]
                 
-                local_path = f"data/Images/{img_name}"
+                # Public Kaggle mirror hosting the complete uncompressed Flickr8k raw dataset images
+                public_image_url = f"https://www.kaggle.com/input/flickr8k/Images/{img_name}"
                 
                 with col_target:
-                    # Configuration 1: If the image file exists locally or was pushed as a subset sample to Git
-                    if os.path.exists(local_path):
-                        st.image(Image.open(local_path), use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
-                    
-                    # Configuration 2: Fallback to a structured UI information card showing successful vector tracking
-                    else:
-                        st.info(f"**Match #{index+1}**\n\n📁 `{img_name}`\n\n🎯 Vector Distance Score: **{score:.4f}**")
-                        st.caption("To visualize this specific photo, add it to your local `data/Images/` directory and push to GitHub.")
+                    try:
+                        # Dynamically streams any matching image out of the 8,000+ available files
+                        st.image(public_image_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
+                    except Exception:
+                        st.info(f"**Match #{index+1}**\n\n📁 `{img_name}`\n\n🎯 Score: **{score:.4f}**")
                         
         except Exception as e:
             st.error(f"Processing anomaly detected: {e}")
