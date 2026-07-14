@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import faiss
 import torch
-import os
-from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
 # --- PAGE INITIALIZATION CONFIGURATION ---
@@ -21,7 +19,7 @@ st.sidebar.caption("B.Tech. in Mechanical Engg. & \nInterdisciplinary M.Tech. in
 st.sidebar.markdown("---")
 st.sidebar.markdown("### System Architecture Topology")
 st.sidebar.info(
-    "Architecture separates concern via standalone FastAPI endpoints querying structural vector indices "
+    "Architecture separates concerns via standalone FastAPI endpoints querying structural vector indices "
     "cataloged by an offline PyTorch CLIP pipeline. Render requests hook onto asynchronous streams seamlessly."
 )
 
@@ -85,13 +83,14 @@ if query_input:
                 img_name = unique_images[idx]
                 score = distances[0][index]
                 
-                # Check for image asset resolution
-                local_path = f"data/Images/{img_name}"
+                # Public web URL repository hosting the target Flickr8k image subset assets
+                public_image_url = f"https://raw.githubusercontent.com/jbrownlee/Datasets/master/flicker8k/Flicker8k_Dataset/{img_name}"
                 
                 with col_target:
-                    if os.path.exists(local_path):
-                        st.image(Image.open(local_path), use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
-                    else:
+                    try:
+                        # Fetch and stream the visual asset directly on the fly
+                        st.image(public_image_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
+                    except Exception:
                         st.warning(f"Vector Verified: {img_name}")
                         st.caption(f"Score: {score:.4f}")
                         
