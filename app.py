@@ -82,15 +82,21 @@ if query_input:
                 img_name = unique_images[idx]
                 score = distances[0][index]
                 
-                # Public Kaggle mirror hosting the complete uncompressed Flickr8k raw dataset images
-                public_image_url = f"https://www.kaggle.com/input/flickr8k/Images/{img_name}"
+                # Fetch text captions from metadata to show below the image
+                associated_captions = metadata[metadata['image'] == img_name]['caption'].tolist()
+                primary_caption = associated_captions[0] if associated_captions else "No description cataloged."
+                
+                # Public open endpoint mirror on Hugging Face hosting the entire raw flickr8k photo collection
+                public_hf_url = f"https://huggingface.co/datasets/kiddo/Flickr8k/resolve/main/Flicker8k_Dataset/{img_name}"
                 
                 with col_target:
                     try:
-                        # Dynamically streams any matching image out of the 8,000+ available files
-                        st.image(public_image_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
+                        # Dynamically streams the actual photo directly from Hugging Face assets cache
+                        st.image(public_hf_url, use_column_width=True, caption=f"Match #{index+1} (Score: {score:.4f})")
+                        st.caption(f"📝 *\"{primary_caption}\"*")
                     except Exception:
-                        st.info(f"**Match #{index+1}**\n\n📁 `{img_name}`\n\n🎯 Score: **{score:.4f}**")
+                        # Fallback info card if a specific network connection drops out
+                        st.info(f"📁 **File:** `{img_name}`\n\n🎯 Score: **{score:.4f}**\n\n📝 *\"{primary_caption}\"*")
                         
         except Exception as e:
             st.error(f"Processing anomaly detected: {e}")
